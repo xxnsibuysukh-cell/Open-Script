@@ -24,6 +24,7 @@ local IMAGE_URL = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/303
 local IMAGE_FILE = "jumpscare_img.jpg"
 local VOLUME = 6          -- 0-10 (lower it if it is too loud with headphones)
 local SHAKE = 12          -- shake strength in pixels
+local FACE_SCALE = 1.25   -- 1 = fit the screen height; bigger = closer/scarier (the top of the head gets cropped, the mouth stays in frame)
 local MAX_WAIT = 10       -- max seconds to wait for the sound to download
 
 local player = Players.LocalPlayer
@@ -81,19 +82,22 @@ bg.BorderSizePixel = 0
 bg.Parent = gui
 
 local img = Instance.new("ImageLabel")
-img.AnchorPoint = Vector2.new(0.5, 0.5)
-img.Position = UDim2.new(0.5, 0, 0.5, 0)
-img.Size = UDim2.new(1.05, 0, 1.05, 0) -- slightly oversized so shaking never shows edges
+-- Anchored to the BOTTOM-center: when scaled up, the extra part runs off the top
+-- (empty black above the head) instead of cutting the mouth off at the bottom.
+img.AnchorPoint = Vector2.new(0.5, 1)
+img.Position = UDim2.new(0.5, 0, 1, 0)
+img.Size = UDim2.new(FACE_SCALE, 0, FACE_SCALE, 0)
 img.BackgroundTransparency = 1
 img.Image = imageAsset
-img.ScaleType = Enum.ScaleType.Crop
+img.ScaleType = Enum.ScaleType.Fit -- keeps the image's real proportions; black bg fills the sides
 img.Parent = bg
 
 -- ===== 5) Show the image + play the sound at the same time =====
 sound:Play()
 
 local shake = RunService.RenderStepped:Connect(function()
-	img.Position = UDim2.new(0.5, math.random(-SHAKE, SHAKE), 0.5, math.random(-SHAKE, SHAKE))
+	-- vertical shake only pushes DOWN so no gap appears under the mouth
+	img.Position = UDim2.new(0.5, math.random(-SHAKE, SHAKE), 1, math.random(0, SHAKE))
 end)
 
 local duration = sound.TimeLength
@@ -104,7 +108,7 @@ task.wait(math.clamp(duration, 1, 6))
 
 -- ===== 6) Fade out and clean up =====
 shake:Disconnect()
-img.Position = UDim2.new(0.5, 0, 0.5, 0)
+img.Position = UDim2.new(0.5, 0, 1, 0)
 
 local info = TweenInfo.new(0.5)
 TweenService:Create(bg, info, { BackgroundTransparency = 1 }):Play()
